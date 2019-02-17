@@ -1,0 +1,38 @@
+%load_ext autoreload
+
+%autoreload 2
+
+tfin=20
+
+tini=0
+
+Cr=1.
+
+import os
+
+RootFolder=os.getcwd()
+
+kk=1
+
+STO=1
+mycmd='mkdir -p '+RootFolder+'/results/calc0'+str(kk)
+os.system(mycmd)
+carpetaN=RootFolder+'/results/calc0'+str(kk)
+carpetaO=RootFolder+'/results/calc0'+str(kk)
+
+from FVRK4GPP_sensiZ import *
+
+import time
+start = time.time()
+#t=FVRK4GPP_sensiZ(tini,tfin,Cr,STO,carpetaN,carpetaO,RootFolder)
+DocomputGPP_sensiZ(RootFolder,tfin,niter)
+end = time.time()
+print("Elapsed (with compilation) = %s" % (end - start))
+
+Elapsed (with compilation) = 179.997496843
+
+start = time.time()
+t=FVRK4GPP_sensiZ(tini,tfin,Cr,STO,carpetaN,carpetaO,RootFolder)
+end = time.time()
+print("Elapsed (after compilation) = %s" % (end - start))
+Elapsed (after compilation) = 134.642822981

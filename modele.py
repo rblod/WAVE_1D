@@ -95,8 +95,8 @@ def movieRESminInterne(ti=None,tf=None,nfps=None,dum=None,carpeta=None,RootFolde
     Hjmat = np.loadtxt(carpeta+'/Hj.dat')
     NUjmat= np.loadtxt(carpeta+'/NUj.dat')
 
-   # mycmd='rm -f '+carpeta+'/*.dat '
-  #  os.system(mycmd)
+    mycmd='rm -f '+carpeta+'/*.dat '
+    os.system(mycmd)
 
     Ntot  = NUjmat.shape[1]
     N0 = Nwet[0]

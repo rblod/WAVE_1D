@@ -185,7 +185,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     
     if rd_wave_tot:
         Tp1 =random.uniform(5.,15.) 
-        H0  = random.uniform(0.5,15)
+        H0  = random.uniform(0.5,1.5)
     else:    
         Tp1 = 10.
         H0 = 0.5    

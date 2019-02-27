@@ -30,82 +30,122 @@ def BrWaveIndex(t=None,kTb=None,PHIb=None,PHIf=None,hj=None,uj=None,fj=None,MatW
 # ----------------------------------------------------------------------------------------------------
     
     # ----------------------------------------------------------------------------------------------------
-    N = len(hj)
+    N = hj.size
     
     # ----------------------------------------------------------------------------------------------------
-    kempty = len(kBrWaveOld) == 0
+    if kBrWaveOld.size == 0:
+        kempty=True
+        kBrWave = np.array([])
+    else:
+        kempty=False
+  #  print kempty
     Nw=0
-#    print MatWav
-    if len(MatWav) > 0:
+#    print 'SHAPE :', MatWav.shape, MatWav.shape
+ #   print ' MatWave : ', MatWav
+    if MatWav.size > 0:
         Nw=MatWav.shape[0]
 
 #    print 'tttss ', kBrWaveOld
  #   print 'tttttt ', Nw
 #    print 'ssstt ', MatWav
 
+   # print 'toto', Nw
 
-    if ( Nw != 0 and kempty == 1):
-        kBrWave = np.zeros([8,Nw])
+
+    kBrWave=np.array([])
+
+    if ( Nw != 0 and kempty == True):
         k = 0
         for i in range(Nw):
-            jc = MatWav[i,0]
-            jt = MatWav[i,1]
+            jc = int(MatWav[i,0])
+            jt = int(MatWav[i,1])
             tanPHI = MatWav[i,2]
             d = MatWav[i,3]
             c = (g*d)** 0.5
+
             if ( tanPHI > tan(PHIb) and uj[jc] > 0 and hj[jt] > WDtol ) :
                 tb = t
                 jb = jc
-                Tb = kTb *  (d/g)** 0.5 
-                kBrWave[0:8,k] = np.array( [tb, jb, Tb, jc, jt, tanPHI, d, c] )
-                k = k + 1
-    else:
-        kBrWave = np.zeros([8,Nw])
-        if ( Nw != 0 and kempty != 1) :
-            k = 0
-            jbr = kBrWaveOld[3,:]
-            for i in range(1,Nw):
-                jc  = MatWav[i,0]
-                jt  = MatWav[i,1]
-                jt1 = MatWav[i-1,1]
-                tanPHI = MatWav[i,2]
-                d = MatWav[i,3]
-                c = (g*d) ** 0.5
-            #    kj= np.min( np.where( jbr > jt1 and jbr < jt) )
-                my1=np.where( jbr > jt1 )[0]
-                my2=np.where( jbr < jt  )[0]
-                min1=np.array([])
-                min2=np.array([])
-                kj=np.array([])
-                if (my1.size > 0):
-                    min1=np.min(my1)
-                if (my2.size > 0):
-                    min2=np.min(my2)
-                if ( min1.size>0 and min2.size )>0:
-                    kj=min(min1,min2)
-                elif min1.size >0:
-                    kj=min1
-                elif min2.size >0:
-                    kj=min2    
-
-       #         kj= (np.min( np.where( jbr > jt1 ), np.min( np.where( jbr < jt))))
-
-                if ( kj.size > 0  and  tanPHI > tan(PHIf) and uj[jc] > 0  and hj[jt] > WDtol ):
-                    toto=np.zeros(3)
-                    toto[:]=kBrWaveOld[0:3,kj]
-          #          print  type(jc), type(jt), type(tanPHI), type(d), type(c)
-                    titi =np.array([jc, jt, tanPHI, d, c])
-                    kBrWave[0:8,k] = np.concatenate( [toto , titi ] )
-                    k = k + 1
+                Tb = kTb *  (d/g)** 0.5
+                if k ==0 :
+                    kBrWave=np.zeros([8,1])
+                    kBrWave[0:8,0]=np.array( [tb, jb, Tb, jc, jt, tanPHI, d, c] )
                 else:
-                    if ( kj.size == 0 and  tanPHI > tan(PHIb) and uj[jc] > 0 and hj[jt] > WDtol ):
-                        tb = t
-                        jb = jc
-                        Tb = kTb*(d/g)** 0.5
-                        kBrWave[0:8,k] = np.concatenate( [tb, jb, Tb, jc, jt, tanPHI, d, c] )
-                        k = k + 1
-        else:
-            if (Nw == 0):
-                kBrWave=np.array([])
-    
+                    toto=np.zeros([8,1])
+                    toto[:,0]= np.array( [tb, jb, Tb, jc, jt, tanPHI, d, c])
+                    kBrWave = np.append(kBrWave,toto,axis=1 )
+                k = k + 1
+
+    elif ( Nw !=0 and kempty == False ) :
+        k = 0
+        jbr = kBrWaveOld[3,:]
+        for i in range(1,Nw):
+            jc  = int(MatWav[i,0])
+            jt  = int(MatWav[i,1])
+            jt1 = int(MatWav[i-1,1])
+            tanPHI = MatWav[i,2]
+            d = MatWav[i,3]
+            c = (g*d) ** 0.5
+            #    kj= np.min( np.where( jbr > jt1 and jbr < jt) )
+            my1=np.where( jbr > jt1 )[0]
+            my2=np.where( jbr < jt  )[0]
+            min1=np.array([])
+            min2=np.array([])
+            kj=np.array([])
+            
+      #      print my1,my2
+            if (my1.size > 0):
+                min1=np.min(my1)
+            if (my2.size > 0):
+                min2=np.min(my2)
+
+            if ( min1.size>0 and min2.size )>0:
+                kj=np.array(min(min1,min2))
+#            elif min1.size >0:
+#                kj=min1
+#            elif min2.size >0:
+#                kj=min2    
+
+     #       kj= (np.min( np.where( jbr > jt1 ), np.min( np.where( jbr < jt))))
+        #    print 'KJ =', kj , jc,jt, jt1, jbr  
+            
+            if ( kj.size > 0  and  tanPHI > tan(PHIf) and uj[jc] > 0  and hj[jt] > WDtol ):
+                toto=np.zeros([3,1])
+                toto[:,0]=kBrWaveOld[0:3,kj]
+          #          print  type(jc), type(jt), type(tanPHI), type(d), type(c)
+                titi=np.zeros([5,1])
+                titi[:,0] = np.array([jc, jt, tanPHI, d, c])
+                tata=np.zeros([8,1])
+                tata[0:3,0]=toto[:,0]
+                tata[3:8,0]=titi[:,0]
+
+                if k ==0 :
+                    kBrWave=np.zeros([8,1])
+                    kBrWave[0:8,k]= tata[:,0]
+                else   : 
+   #                 print kBrWave.shape, k
+   #                 print tata.shape
+                    kBrWave = np.append(kBrWave,tata,axis=1 )
+                k = k + 1
+
+            elif ( kj.size == 0 and  tanPHI > tan(PHIb) and uj[jc] > 0 and hj[jt] > WDtol ):
+                tb = t
+                jb = jc
+                Tb = kTb*(d/g)** 0.5
+                tata=np.zeros([8,1])
+                tata[:,0]=np.array( [tb, jb, Tb, jc, jt, tanPHI, d, c] )
+                if k ==0 :
+                    kBrWave=np.zeros([8,1])
+                    kBrWave[0:8,k]= tata[:,0]
+                else:    
+                    kBrWave= np.append(kBrWave,tata,axis=1 )
+                k = k + 1
+    elif (Nw == 0):
+  #          if (Nw == 0):
+        kBrWave=np.array([])
+  #  print 'BrWav0', Nw, kempty
+  #  print 'BrWav', MatWav
+ #   print 'BrWav2', kBrWave
+    kBrWaveOld= np.array([])
+
     return kBrWave

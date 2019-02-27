@@ -84,6 +84,7 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
     data[:]=(1+rj[2:N-2])/24. -1/dx**2*aj[2:N-2]
     A2=sps.csr_matrix((data, (row, col)), shape=(N-2,N -2))
 
+
     Au = A1 + Ad + A2
  
     Au[0,0] = (1+rj[1])/24.* 22 - 1/dx**2*( -(aj[1]+bj[1]) )

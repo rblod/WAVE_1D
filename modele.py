@@ -3,6 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from randomfield_2 import *
+import os
+import __builtin__
+
+
 
 #from numba import njit
     
@@ -17,15 +21,32 @@ def modele( RootFolder = None, tfin     = None, miter       = None,
             nstart     = None, nfps     = None, newdx       = None, 
             withnoise  = None, noisemin = None, noisemax    = None  ):
 
+    read_bathy = False
+    save_bathy = False
         
     # Generation Bathy Random
+    success = False
     if rd_bathy : 
-        Zprof = genebathy_2()
+        while success == False :
+            Zprof, success = genebathy_2()
     else : 
         Zprof=np.linspace(-10,2,num=200)
-  #  plt.plot(Zprof)
-  #  plt.show()    
+#  plt.plot(Zprof)
+#    plt.show()    
+    
+    if read_bathy:
+        fid=__builtin__.open(('Zprof_'+str(miter+1)+'.dat'),'r')
+        toto=fid.read()
+        Zprof=toto.strip().split("\t")
+        Zprof=np.array([float(i) for i in Zprof])
+        fid.close()
+
     np.save('Zprof',Zprof) 
+    if save_bathy:
+        fidZ=__builtin__.open('Zprof_'+str(miter+1)+'.dat','w')
+        for idx in range(len(Zprof)):
+          fidZ.write( '%6.8f \t' % Zprof[idx] )
+        fidZ.close()
      
     # Time integration to compute eta
     t = DocomputGPP_sensiZ(RootFolder, tfin,miter, rd_wave, rd_wave_tot )
@@ -48,15 +69,14 @@ def modele( RootFolder = None, tfin     = None, miter       = None,
 
         TimeStackNoise = TimeStack * nn
     else:
-        nn=1.+TimeStackNoise
-
+        nn=1.*TimeStackNoise
     
     
     # Save outputs
     if withnoise:
-        np.save( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack, Bath, TimeStack,TimeStackNoise ) 
+        np.savez( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack, Bath, TimeStack,TimeStackNoise ) 
     else:
-        np.save( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack, Bath, TimeStack )  
+        np.savez( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack, Bath, TimeStack )  
 
     return TimeStack, Zprof, nn
     
@@ -127,10 +147,10 @@ def movieRESminInterne(ti=None,tf=None,nfps=None,dum=None,carpeta=None,RootFolde
             tN1 = tN
             tN2 = tN
 
-        N1 = Nwet[tN1-1]
-        N2 = Nwet[tN2-1]
+        N1 = int(Nwet[tN1-1])
+        N2 = int(Nwet[tN2-1])
         N  = min(N1,N2)
-        t1 = Time[N1-1]
+        t1 = Time[tN1-1]
         t2 = Time[tN2-1]
         Hj1 = Hjmat[tN1-1,0:N]
         Hj2 = Hjmat[tN2-1,0:N]
@@ -184,7 +204,7 @@ def movieRESminInterne(ti=None,tf=None,nfps=None,dum=None,carpeta=None,RootFolde
  #       set_interp = interp1d( XStack[0:bb], Roller[idt,:]   , kind='linear', fill_value='extrapolate' )       
  #       Roller_new[idt,:] = set_interp(x)
        
-  #      set_interp = interp1d( XStack, Bath, kind='linear', fill_value='extrapolate')
+        set_interp = interp1d( XStack[0:N], Bath, kind='linear', fill_value='extrapolate')
         Bath_new[idt,:] = set_interp(x)
 #
     return x, TimeStack_new, Bath_new
@@ -192,8 +212,8 @@ def movieRESminInterne(ti=None,tf=None,nfps=None,dum=None,carpeta=None,RootFolde
 
 def genebathy_2():
 
-    X  = np.arange(0,151)
-    X1 = np.arange(-50,151)
+    X  = np.arange(0.,151)
+    X1 = np.arange(-50.,151.)
 
     # interval number bars
     ib = np.array([0,5])
@@ -201,10 +221,9 @@ def genebathy_2():
     bnb = int(round((ib[1]-ib[0])*b + ib[0]))   #number of bars
 
     # slope range
-    ib = np.array([0.01, 0.05])
+    ib = np.array([0.02, 0.05])
     b = random.random()
     sl=((ib[1]-ib[0])*b + ib[0])       #linear beach slope
-
     # bar amplitude range
     ib = np.array([0.25, 6])
     b = np.random.rand(bnb,1)
@@ -213,25 +232,32 @@ def genebathy_2():
     # bar position range
     b = np.random.rand(bnb,1)
     ib = np.array([1*np.size(X)/5., 3*np.size(X)/5.])
-    bx = sorted(np.round((ib[1]-ib[0])*b+ ib[0])) 
-    bx = [int(i) for i in bx]
+    bx = sorted(np.round((ib[1]-ib[0])*b+ ib[0]).astype(int) ) 
+ #   bx = [int(i) for i in bx]
 
     # bar width range
-    ib = np.array([50, 600])
+    ib = np.array([50., 600.])
     b = np.random.rand(bnb,1)
-    bw = sorted(np.round((ib[1]-ib[0])*b + ib[1])) 
-    bw = [int(i) for i in bw]
+    bw = sorted(np.round((ib[1]-ib[0])*b + ib[0]).astype(int)  )
+  #  bw = [int(i) for i in bw]
 
     z1 = -X*sl;    
     for ib in range (0,bnb) :
         bw[ib] = 3.*bx[ib];
-        while z1[bx[ib]]+bamp[ib]*np.exp(  -((X[bx[ib]]-bx[ib])**2)/(bw[ib]) )>z1[bx[ib]]/3 :
+        while z1[bx[ib]]+bamp[ib]*np.exp(  -((X[bx[ib]]-bx[ib]))**2/bw[ib] ) > z1[bx[ib]]/3.  :
             bamp[ib] = bamp[ib]/2.
-        z1 = z1+bamp[ib]*np.exp( -((X-bx[ib])**2)/(bw[ib]) )
+        z1 = z1+bamp[ib]*np.exp( -((X-bx[ib])**2)/bw[ib] )
+
+    mysucc=True
+  #  mytest=z1[z1>0]
+  #  if mytest.size > 0 : 
+  #      print 'Generation bathy failed'
+  #      mysucc=False
 
     z = -X1*sl 
     z[50::] = z1
     z[:] = z[::-1]
+    z=z-0.2
 
-    return z
+    return z, mysucc
     

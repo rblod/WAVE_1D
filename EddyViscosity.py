@@ -34,54 +34,66 @@ def EddyViscosity(t=None,PHIb=None,PHIf=None,beta=None,alfab=None,alfaf=None,gam
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
     
-    N = len(hj)
+    N = hj.size
     Nu1j = np.zeros(N)
     Nu2j = np.zeros(N)
     K = 3.*exp(- 1) - 1
     i=0
-    if len(kBrWave) == 0:
+    if kBrWave.ndim <=1:
         kn=0
-        jB=np.array([1])
+        jB=np.array([0])
     else:
-        kn=len(kBrWave[1])
+        kn=np.shape(kBrWave)[1]
         jB=np.zeros(kn)
   
     
 # ----------------------------------------------------------------------------------------------------
 # -------------------------------------- Cienfuegos et al. (2005) ------------------------------------
 # ----------------------------------------------------------------------------------------------------
-    kn =0
-    jB=np.array([1])
+    
     for k in range(kn):
         kDAT = kBrWave[0:8,k]
         tb = kDAT[0]
-        jb = kDAT[1]
+        jb = int(kDAT[1])
         Tb = kDAT[2]
-        jc = kDAT[3]
-        jt = kDAT[4]
+        jc = int(kDAT[3])
+        jt = int(kDAT[4])
         tanPHI = kDAT[5]
         d = kDAT[6]
         c = kDAT[7]
+    #    if c==0:
+    #        return
         PHIr = PHIf + (PHIb - PHIf) * exp(-log(2)*(t-tb)/Tb)
         gamar = gamaf + (gamab-gamaf)*exp(-log(2)*(t-tb)/Tb)    # Breaker index evolution
         alfar = alfaf + (alfab-alfaf)*exp(-log(2)*(t-tb)/Tb)    #  Order one coefficient for energy dissipation evolution
         er = max(beta**2/(2.*(1-beta**2))*(1-gamar)*d,WDtol)    # Total roller height
         lr=er/tan(PHIr)    #Total roller length
         Jr1=jc             # j-coordinate for the location of the first "active" node
-        Jr2 = min(Jr1+max(ceil(lr/dx),2),N)    # j-coordinate for the last "active" node
+        Jr2 = min(Jr1+max(int(ceil(lr/dx)),2),N-1)    # j-coordinate for the last "active" node
         lr = min(Xj[Jr2]-Xj[Jr1],Xj[jt]-Xj[Jr1])
         K1K2 = kapf+(kapb-kapf)*exp(-log(2)*(t-tb)/Tb)    #Diffusivity weighting coefficient evolution 
         K2 = alfar/(1.+K1K2)/tan(PHIr)                     #Momentum eddy viscosity coefficient
         K1 = K1K2*K2                                     # Continuity eddy viscosity coefficient
         jB[i] = jb #Breaking nodal point
         i = i + 1
-
         Xr = Xj[Jr1:Jr2+1]- Xj[Jr1]
         Nu1j[Jr1:Jr2+1] = -K1*c*d*np.exp(Xr/lr-1.)*((Xr/lr-1.)+(Xr/lr-1.)**2) #Local eddy viscosity for continuity equation
         Nu2j[Jr1:Jr2+1] = -K2*c*d*np.exp(Xr/lr-1.)*((Xr/lr-1.)+(Xr/lr-1.)**2) # Local eddy viscosity for momentum equation    
+     #   if k == kn-1 :
+     #       print Xr
+     #       print K1
+     #       print Nu1j[Jr1:Jr2+1]
+     #       print lr    
 
-    jB=max(np.min(jB),1)-1
-    xb=Xj[jB]
+
+    jB1=max(np.min(jB),0) 
+    xb=Xj[jB1]
     Nu1j = multiply((Nu1j > 0), Nu1j)
     Nu2j = multiply((Nu2j > 0), Nu2j)
+    
+  #  print 'titi'
+  #  print Nu1j
+
+    #print 'end iti'
+    
     return Nu1j,Nu2j,xb

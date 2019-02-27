@@ -57,36 +57,42 @@ def jonswap_blw(duree=None,freq=None,fp=None,Hmo=None,nfre=None,gama=None,hh=Non
     ff1=np.arange(fp,fmin, -df)
 
     if rd_wave:
-        ff1=np.sort(ff1) + dot((random_sample(len(ff1)) - 0.5),df)
+        ff1=np.sort(ff1) #+ dot((random_sample(len(ff1)) - 0.5),df)
     else:    
-        ff1=np.sort(ff1) + dot((np.arange(1,len(ff1)+1,1) - 0.5),df)
+        ff1=np.sort(ff1) #+ dot((np.arange(1,len(ff1)+1,1) - 0.5),df)
     ff2=np.arange(fp + df,fmax,df)
     if rd_wave:
-        ff2=ff2 + dot((random_sample(len(ff2)) - 0.5),df)
+        ff2=ff2 #+ dot((random_sample(len(ff2)) - 0.5),df)
     else:    
-        ff2=ff2 + dot((np.arange(1,len(ff2)+1,1) - 0.5),df)
+        ff2=ff2 #+ dot((np.arange(1,len(ff2)+1,1) - 0.5),df)
     ff=np.concatenate([ff1,ff2])
-#    print len(ff)
-    
+
     #-----------------------------------------------------------------------
 # calcul du spectre
-    Gf1=gama ** np.exp(- (ff1 / fp - 1) ** 2.0 / 2 / siga ** 2)
-    Gf2=gama ** np.exp(- (ff2 / fp - 1) ** 2.0 / 2 / sigb ** 2)
+    Gf1=gama ** np.exp(- (ff1 / fp - 1) ** 2.0 / 2. / siga ** 2)
+    Gf2=gama ** np.exp(- (ff2 / fp - 1) ** 2.0 / 2. / sigb ** 2)
     Gf=np.concatenate([Gf1,Gf2])
     af=dot(dot(dot(0.0624,Hmo),Hmo),fp ** 4) / (0.23 + dot(0.0336,gama) - 0.185 / (1.9 + gama))
-    SSm=multiply(dot(Gf,af) / ff ** 5,np.exp((-5./4.*(ff/fp)**-4)))
+    SSm = Gf * af /ff**5 *np.exp(-5/4.*(ff/fp)**-4)
     Hm0_m_cons=dot(4,sqrt(dot(np.sum(SSm),df)))
+
     
     # figure,plot(ff,SS,ff,SSm,'--')
 #-------------------------------------------------------------------------
 # determination de chaq composantes
-    AA=sqrt(2*SSm*df)
-    
+
  #RB   phi=dot(dot(2,pi),random_sample(nfre))
-    phi=2*pi*np.arange(1,nfre+1,1)
-    
-    tt=np.arange(0,duree+1./freq,1. / freq)
+    if rd_wave:
+        phi=2*pi*(random_sample((nfre))-0.5);     
+    else:    
+        phi=2*pi*np.arange(1,nfre+1,1)
+    AA=np.sqrt(2*SSm*df)        
+
+    tt=np.arange(0,duree,1. / freq)
     eta=np.zeros(len(tt))
+ #   etf=np.zeros(len(tt))
+
+
     #-------------------------------------------------------------------------
 # recomposition de la surface libre au premier ordre
     kk=np.zeros(nfre)
@@ -95,14 +101,12 @@ def jonswap_blw(duree=None,freq=None,fp=None,Hmo=None,nfre=None,gama=None,hh=Non
 #    print ff.shape
 #    print phi.shape
 #    return
-
     for ii in range(0,nfre):
-        etf=dot(AA[ii],cos(multiply(dot(dot(2,pi),tt),ff[ii]) + phi[ii]))
+        etf=AA[ii]*cos(2*pi*tt*ff[ii] + phi[ii])
         eta=eta + etf
-        kk[ii]=dot(dot(2,pi),ff[ii]) / sqrt(dot(gg,hh))
+        kk[ii]=dot(dot(2,pi),ff[ii]) / sqrt((gg*hh))
         for it in range(0,30):
             kk[ii]=(dot(dot(2,pi),ff[ii])) ** 2 / (dot(gg,tanh(dot(kk[ii],hh))))
-    
     #-------------------------------------------------------------------------
 # Determination de la bound wave
     Dm=dot(ff,sqrt(hh / gg))

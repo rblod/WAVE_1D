@@ -201,12 +201,13 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         Tp1 =random.uniform(6.,15.) 
         H0=50
         while H0 > abs(Zprof[0])/4.:
-            H0  = random.uniform(0.2,2)
+            H0  = random.uniform(0.2,hmax)
     else:    
         Tp1 = 10.
         H0 = 0.5    
  
     a1  = H0
+    a0 = H0/2.
     epsilon=a0/h0 #Typical nonlinear parameter
 
     if not read_forcing: 

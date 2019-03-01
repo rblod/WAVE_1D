@@ -551,7 +551,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
             fidHout.write( '%6.4f \t' % hout )
             fidHout.write('\n')
 
-            kst = 0#- 1
+            kst = -1
         kst = kst + 1
         # ------------------------------------------------------------------------------------------------
         # --------------------------------- Screen Information -------------------------------------------

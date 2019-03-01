@@ -20,7 +20,10 @@ def DocomputGPP_sensiZ( RootFolder=None, tend=None, miter=None, rd_wave=None, rd
         tini = t
         mycmd ='cd '+RootFolder
         os.system(mycmd)
-        t = FVRK4GPP_sensiZ(tini, tend, Cr, STO, carpetaN, carpetaO, RootFolder, rd_wave, rd_wave_tot,miter)
+        hmax =2.
+        while t < tend :        
+            t = FVRK4GPP_sensiZ(tini, tend, Cr, STO, carpetaN, carpetaO, RootFolder, rd_wave, rd_wave_tot,miter,hmax)
+            hmax = hmax/2.
         if t < tend:
             print 'AAAAAAA AAAAA'
             Cr = 0.5

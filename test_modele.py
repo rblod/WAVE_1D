@@ -3,7 +3,7 @@ from os import getcwd
 import matplotlib.pyplot as plt
 import numpy as np
 ##
-do_plot=True
+do_plot=False
 
 niter = 5
 RootFolder = getcwd()

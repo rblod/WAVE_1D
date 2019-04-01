@@ -23,7 +23,7 @@ def modele( RootFolder = None, tfin     = None, miter       = None,
             withnoise  = None, noisemin = None, noisemax    = None  ):
 
     read_bathy = False
-    save_bathy = True
+    save_bathy = False
         
     # Generation Bathy Random
     success = False
@@ -251,10 +251,12 @@ def genebathy_2():
         z1 = z1+bamp[ib]*np.exp( -((X-bx[ib])**2)/bw[ib] )
 
     mysucc=True
-  #  mytest=z1[z1>0]
-  #  if mytest.size > 0 : 
-  #      print 'Generation bathy failed'
-  #      mysucc=False
+    z2=z1[1:]
+    mytest=z2[z2>0]
+    if mytest.size > 0 : 
+        print 'Generation bathy failed'
+        print mytest.size
+        mysucc=False
 
     z = -X1*sl 
     z[50::] = z1

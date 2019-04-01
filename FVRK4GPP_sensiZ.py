@@ -210,6 +210,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
 	a0 = H0/2.
  
     a1  = H0
+    a0 = H0/2.
     epsilon=a0/h0 #Typical nonlinear parameter
 
     if not read_forcing: 
@@ -568,7 +569,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
             fidHout.write( '%6.4f \t' % hout )
             fidHout.write('\n')
 
-            kst = 0
+            kst = -1
         kst = kst + 1
         # ------------------------------------------------------------------------------------------------
         # --------------------------------- Screen Information -------------------------------------------

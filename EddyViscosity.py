@@ -86,7 +86,7 @@ def EddyViscosity(t=None,PHIb=None,PHIf=None,beta=None,alfab=None,alfaf=None,gam
      #       print lr    
 
 
-    jB1=max(np.min(jB),0) 
+    jB1=int(max(np.min(jB),0) )
     xb=Xj[jB1]
     Nu1j = multiply((Nu1j > 0), Nu1j)
     Nu2j = multiply((Nu2j > 0), Nu2j)

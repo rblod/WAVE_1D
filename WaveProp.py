@@ -6,6 +6,7 @@ from explicitFILT0 import *
 
 
 #@jit
+#@profile
 def WaveProp(Xj=None, hj=None, fj=None, Dxhj=None,Dxfj=None,WDtol=None):
     # Estimate of j-position indexes of wave crest and trough
     

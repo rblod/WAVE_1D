@@ -3,6 +3,7 @@ from math import tan
 #from numba import jit
 
 #@jit
+#@profile
 def BrWaveIndex(t=None,kTb=None,PHIb=None,PHIf=None,hj=None,uj=None,fj=None,MatWav=None,kBrWaveOld=None,dx=None,dt=None,g=None,WDtol=None):
 
     # ----------------------------------------------------------------------------------------------------
@@ -38,19 +39,9 @@ def BrWaveIndex(t=None,kTb=None,PHIb=None,PHIf=None,hj=None,uj=None,fj=None,MatW
         kBrWave = np.array([])
     else:
         kempty=False
-  #  print kempty
     Nw=0
-#    print 'SHAPE :', MatWav.shape, MatWav.shape
- #   print ' MatWave : ', MatWav
     if MatWav.size > 0:
         Nw=MatWav.shape[0]
-
-#    print 'tttss ', kBrWaveOld
- #   print 'tttttt ', Nw
-#    print 'ssstt ', MatWav
-
-   # print 'toto', Nw
-
 
     kBrWave=np.array([])
 
@@ -86,33 +77,13 @@ def BrWaveIndex(t=None,kTb=None,PHIb=None,PHIf=None,hj=None,uj=None,fj=None,MatW
             tanPHI = MatWav[i,2]
             d = MatWav[i,3]
             c = (g*d) ** 0.5
-            #    kj= np.min( np.where( jbr > jt1 and jbr < jt) )
-            my1=np.where( jbr > jt1 )[0]
-            my2=np.where( jbr < jt  )[0]
-            min1=np.array([])
-            min2=np.array([])
             kj=np.array([])
-            
-      #      print my1,my2
-            if (my1.size > 0):
-                min1=np.min(my1)
-            if (my2.size > 0):
-                min2=np.min(my2)
-
-            if ( min1.size>0 and min2.size )>0:
-                kj=np.array(min(min1,min2))
-#            elif min1.size >0:
-#                kj=min1
-#            elif min2.size >0:
-#                kj=min2    
-
-     #       kj= (np.min( np.where( jbr > jt1 ), np.min( np.where( jbr < jt))))
-        #    print 'KJ =', kj , jc,jt, jt1, jbr  
-            
+            myall= np.where( (jbr > jt1) & (jbr < jt)  )[0]
+            if myall.size>0:
+                 kj=min(myall)
             if ( kj.size > 0  and  tanPHI > tan(PHIf) and uj[jc] > 0  and hj[jt] > WDtol ):
                 toto=np.zeros([3,1])
                 toto[:,0]=kBrWaveOld[0:3,kj]
-          #          print  type(jc), type(jt), type(tanPHI), type(d), type(c)
                 titi=np.zeros([5,1])
                 titi[:,0] = np.array([jc, jt, tanPHI, d, c])
                 tata=np.zeros([8,1])
@@ -123,12 +94,11 @@ def BrWaveIndex(t=None,kTb=None,PHIb=None,PHIf=None,hj=None,uj=None,fj=None,MatW
                     kBrWave=np.zeros([8,1])
                     kBrWave[0:8,k]= tata[:,0]
                 else   : 
-   #                 print kBrWave.shape, k
-   #                 print tata.shape
                     kBrWave = np.append(kBrWave,tata,axis=1 )
                 k = k + 1
 
             elif ( kj.size == 0 and  tanPHI > tan(PHIb) and uj[jc] > 0 and hj[jt] > WDtol ):
+                print 'in part 2'
                 tb = t
                 jb = jc
                 Tb = kTb*(d/g)** 0.5
@@ -141,11 +111,7 @@ def BrWaveIndex(t=None,kTb=None,PHIb=None,PHIf=None,hj=None,uj=None,fj=None,MatW
                     kBrWave= np.append(kBrWave,tata,axis=1 )
                 k = k + 1
     elif (Nw == 0):
-  #          if (Nw == 0):
         kBrWave=np.array([])
-  #  print 'BrWav0', Nw, kempty
-  #  print 'BrWav', MatWav
- #   print 'BrWav2', kBrWave
     kBrWaveOld= np.array([])
 
     return kBrWave

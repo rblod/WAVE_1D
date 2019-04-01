@@ -33,7 +33,8 @@ from findposRL2       import *
 from DeffCorrU        import *
 
 #@jit
-def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO=None, RootFolder=None, rd_wave=None, rd_wave_tot=None,miter=None):
+#@profile
+def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO=None, RootFolder=None, rd_wave=None, rd_wave_tot=None,miter=None, hmax=None):
     
     # ----------------------------------------------------------------------------------------------------
     # --------------------------------------- Main Routine -----------------------------------------------
@@ -63,9 +64,10 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
 
     # ----------------------------------------------------------------------------------------------------
     #-
+    #for debug purposes
     read_forcing = False
     read_bathy=False
-    save_forcing = False
+    save_forcing = True
     full_output = False
     
     if read_bathy:
@@ -181,11 +183,11 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     
     Ntot = len(Xj)
     
-    N= min ( np.min( np.where(fj > 0) ), np.max( np.where(fj <= 0) ) )   #python index
+    N = min ( np.min( np.where(fj > 0) ), np.max( np.where(fj <= 0) ) )   #python index
     
-    Next=N + NSZ      #python index
+    Next = N + NSZ      #python index
     
-    Nint=N - NIZ      #python index
+    Nint = N - NIZ      #python index
     
     # ----------------------------------------------------------------------------------------------------
     # Wave forcing
@@ -199,12 +201,13 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     if rd_wave_tot:
         rd_wave = True
         Tp1 =random.uniform(6.,15.) 
-        H0=50
+       # H0=5
         while H0 > abs(Zprof[0])/4.:
-            H0  = random.uniform(0.2,2)
+            H0  = random.uniform(0.2,hmax)
     else:    
         Tp1 = 10.
         H0 = 0.5    
+	a0 = H0/2.
  
     a1  = H0
     epsilon=a0/h0 #Typical nonlinear parameter
@@ -212,7 +215,6 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     if not read_forcing: 
         ff,SSm,tt,etahf,eta,etaLB = jonswap_blw( Tf*2, (1./dt), 1./Tp1, a1, 100, 3.3, -Zprof[0], rd_wave )
   
-
     if read_forcing :
         fid=open('eta_'+str(miter+1)+'.dat','r')
         toto=fid.read()
@@ -267,11 +269,14 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     AD    = Comp_1st_Mat( Ntot-2 )    
     ADi   = Comp_1st_Mat( Ntot-3 )    
     BQ    =   Cell_J_Mat( Ntot )
-    
+
     # ----------------------------------------------------------------------------------------------------
     # ---------------------------- Bottom's derivative estimate ------------------------------------------
     # ----------------------------------------------------------------------------------------------------
     #-
+    Dxfj = np.zeros([Ntot])
+    Dxfi = np.zeros([Ntot])
+    Dxxfj = np.zeros([Ntot])
     Dxfj =  Deriv1j( fj, dx, ADxj )
     Dxfi =  deriv1i( fi, fj[0],fj[Ntot-1], dx, ADxi )
     Dxxfj = Deriv2j( fj, dx, ADxxj )
@@ -302,10 +307,6 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
 
     Nu1j = np.zeros([Ntot])
     Nu2j = np.zeros([Ntot])
-    Dxhj = np.zeros([Ntot])
-    Dxxhj = np.zeros([Ntot])
-    Dxuj = np.zeros([Ntot])
-    Dxxuj = np.zeros([Ntot])
     FCj = np.zeros([Ntot])
     FCi = np.zeros([Ntot-1])
     FMj = np.zeros([Ntot])
@@ -313,21 +314,30 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     SMi = np.zeros([Ntot-1])
     DtHi = np.zeros([Ntot-1])
     DtQi = np.zeros([Ntot-1])
-    KQ1 = np.zeros([Ntot-1])
+    Hi  = np.zeros(Ntot-1)
+    Qi  = np.zeros(Ntot-1) 
+    kQ1 = np.zeros([Ntot-1])
     kH1 = np.zeros([Ntot-1])
-    KQ2 = np.zeros([Ntot-1])
+    kQ2 = np.zeros([Ntot-1])
     kH2 = np.zeros([Ntot-1])
-    KQ3 = np.zeros([Ntot-1])
+    kQ3 = np.zeros([Ntot-1])
     kH3 = np.zeros([Ntot-1])
-    KQ4 = np.zeros([Ntot-1])
-    kH3 = np.zeros([Ntot-1])
-   
+    kQ4 = np.zeros([Ntot-1])
+    kH4 = np.zeros([Ntot-1])
 
+    Dxhj = np.zeros([Ntot])
+    Dxxhj = np.zeros([Ntot])
+    Dxuj = np.zeros([Ntot])
+    Dxxuj = np.zeros([Ntot])
+   
     if t0 == 0:
+        hj = np.zeros( [Ntot] )
         hj = -fj[0:Ntot]
         uj = np.zeros( [Ntot] )
+        hi = np.zeros( [Ntot-1] )
         hi = -fi[0:Ntot-1]
         set_interp = interp1d( Xj, uj, kind='cubic' )
+        ui= np.zeros( [Ntot-1] )
         ui = set_interp(Xi)
         qj = np.zeros( [Ntot] )
     else:
@@ -348,9 +358,12 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     Uj[1:Ntot-1] = 2./3.*uj[1:Ntot-1] + 1./6.*( ui[0:Ntot - 2] + ui[1:Ntot - 1] )    
     Uj[Ntot-1] = 2./3.*uj[Ntot-1] + 1./6.*( 5.*ui[Ntot-2] - 6*ui[Ntot-3] + 4.*ui[Ntot-4] - ui[Ntot-5] )
     
-    Dxui=deriv1i(ui,uj[0],uj[Ntot-1],dx,ADxi)    
-    Dxhj=Deriv1j(hj,dx,ADxj)
+    Dxui = np.zeros([Ntot-1])
+    Dxui = deriv1i(ui,uj[0],uj[Ntot-1],dx,ADxi)    
+    Dxhj = np.zeros([Ntot])
+    Dxhj = Deriv1j(hj,dx,ADxj)
     
+    rj = np.zeros( [Ntot] )
     rj = betaD*( ( Dxhj[0:Ntot]+Dxfj[0:Ntot] )*Dxfj[0:Ntot] + 1./2.*hj[0:Ntot]*Dxxfj[0:Ntot] )  # Auxiliary variable r at j nodes
     hi0   = 4.*hi[0]  -6.*hi [1]+4.*hi  [2]-  hi[3]                              # cubic extrapolation
     Dxui0 = 4.*Dxui[0]-6*Dxui[1]+4.*Dxui[2]-Dxui[3]                              # cubic extrapolation
@@ -410,12 +423,22 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     #-
 #RB verifier ici 
 #verifier valeur Next
-    ADxjr  = Comp_1st_Mat( Next+1 )    
+    ADxjr=np.zeros([N+NSZ+1,N+NSZ+1])
+    ADxjr  = Comp_1st_Mat( Next+1 ) 
+
+
+    ADxir=np.zeros([N+NSZ,N+NSZ])
     ADxir  = Comp_1st_Mat( Next)    
-    ADxxjr = Comp_2nd_Mat( Next+1 )    
-    ADr = Comp_1st_Mat( Next-1 )    
+
+    ADxxjr=np.zeros([N+NSZ+1,N+NSZ+1])
+    ADxxjr = Comp_2nd_Mat( Next+1 )  
+
+    ADr=np.zeros([N+NSZ-1,N+NSZ-1])
+    ADr = Comp_1st_Mat( Next-1 )
+
+    BQr=np.zeros([N+NSZ-1,N+NSZ-1])
     BQr = Cell_J_Mat( Next+1 )
-    
+
     # ----------------------------------------------------------------------------------------------------
     # --------------------------------- Derivative estimates ---------------------------------------------
     # ----------------------------------------------------------------------------------------------------
@@ -436,7 +459,6 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     etamj = np.zeros(Ntot)
     
 
-    Hi=np.zeros(Ntot-1)
     Hi[:]  = Hi0[:]
 
     uj0=np.zeros(Ntot)
@@ -461,10 +483,6 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
     WaterVol = np.zeros( mysize )    
     VolIn    = np.zeros( mysize ) 
 
-    Qi= np.zeros(Ntot-1) 
-
-#    print Tf
-#    return
     while t <= Tf +dt:
 
         # ------------------------------------------------------------------------------------------------
@@ -540,7 +558,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
 
             fidTime.write( '%6.4f \t' % t    )
             fidTime.write('\n')
-            toto=N+1
+            toto=N
             fidNwet.write( '%6.4f \t' % toto )
             fidNwet.write('\n')
 
@@ -550,7 +568,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
             fidHout.write( '%6.4f \t' % hout )
             fidHout.write('\n')
 
-            kst = 0#- 1
+            kst = 0
         kst = kst + 1
         # ------------------------------------------------------------------------------------------------
         # --------------------------------- Screen Information -------------------------------------------
@@ -559,7 +577,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
 #RB    
         os.system('clear') 
         print('%s %6.3f %s \t'   % ('Current time = ',t,'s'))
-        #print 'i =', i
+      #  #print 'i =', i
         print('%s %6.3f %s \t'   % ('dx = ',dx,'m'))
         print('%s %6.3f %s \t'   % ('dt = ',dt,'s'))
         print('%s %6.3f %s \t'   % ('Cr = ',Cr,'m/s'))
@@ -601,8 +619,8 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-
         FCj[0:N+1] = FluxContinuity( hj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Nu1j[0:N+1] )
         FCi[0:N] = 1./dx*( FCj[1:N+1] - FCj[0:N] )
-        FCj[N+1::] = 0.
-        FCi[N::] = 0.
+        FCj[N+1:] = 0.
+        FCi[N:] = 0.
 
         # ------------------------------------------------------------------------------------------------
         # ---------------------------- Flux function for momemtum equation  ------------------------------
@@ -610,24 +628,24 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-
         FMj[0:N+1] = FluxMomentum( qj[0:N+1], hj[0:N+1], fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Dxuj[0:N+1], Dxxhj[0:N+1], Dxxuj[0:N+1], Dxxfj[0:N+1], g, betaD, alfa, WDtol )
         FMi[0:N] = 1./dx*( FMj[1:N+1] - FMj[0:N] )
-        FMj[N+1::] = 0.
-        FMi[N::]=  0.
+        FMj[N+1:] = 0.
+        FMi[N:]=  0.
 
         # ------------------------------------------------------------------------------------------------
         # --------------------------- Source function for momemtum equation ------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
         SMi[0:N] = SourceMomentum( hi[0:N], hj[0:N+1], fi[0:N], fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Dxfi[0:N], Dxuj[0:N+1], Nu2j[0:N+1], Xi[0:N], g, betaD, alfa, fricFact, Cfi[0:N], WDtol )
-        SMi = 1./dx*SMi
-        DtHi = -FCi
-        DtQi = -FMi + SMi
+        SMi[0:N] = 1./dx*SMi[0:N]
+        DtHi[0:N] = -FCi[0:N]
+        DtQi[0:N] = -FMi[0:N] + SMi[0:N]
 
         # ------------------------------------------------------------------------------------------------
         # ------------------------------- Estimates of Hi and Qi at t=t+dt/2 -----------------------------
         # ------------------------------------------------------------------------------------------------
         #-
-        kH1 = dt*DtHi
-        kQ1 = dt*DtQi
+        kH1[0:N] = dt*DtHi[0:N]
+        kQ1[0:N] = dt*DtQi[0:N]
         Hi[0:N] = Hi0[0:N] + 1./2.*kH1[0:N]
         Qi[0:N] = Qi0[0:N] + 1./2.*kQ1[0:N]
         if FilterD1 == 1:
@@ -669,7 +687,11 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         DxfR0 = (1-b)*Dxfj[p] + b*Dxfj[p+1];
      
         #Water depth and velocity for incident wave
+ 
+
         hL0 = DataManip( t+dt/2., h0+offset, DAT )
+
+
         uL0 = (g*hL0)**0.5*(hL0+fj[0])/hL0
         
         IR = uR0 -2*(g*hR0)**0.5 - dt/2.*g*DxfR0 # Variable de Riemann associee a C-
@@ -684,31 +706,30 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-        
         uA = 1./2.*(IL + IR)
         hA = 1./(16.*g)*(IL - IR)**2
-        
-        #-
+ 
         # Cell face values reconstruction for water depth h
         #-
         hj[0:Next+1] = CellFaceInt( dx, Hi[0:Next], ADr, hA )
         Dxhj[0:Next+1]  = Deriv1j( hj[0:Next+1], dx, ADxjr  )
         Dxxhj[0:Next+1] = Deriv2j( hj[0:Next+1], dx, ADxxjr )
-        hj[Next+1::]=0
-        Dxhj[Next+1::]=0
-        Dxxhj[Next+1::]=0
-
+        hj[Next+1:]=0
+        Dxhj[Next+1:]=0
+        Dxxhj[Next+1:]=0
+ 
         #-
         # Water depth i-values
         #-
 
         hi[0:Next] = 3./2.*Hi[0:Next] - 1./4.*( hj[0:Next] + hj[1:Next+1] )
-        hi[Next::] = 0.
+        hi[Next:] = 0.
         uj[0:Next+1], qj[0:Next+1] = DeffCorrU( uA, Qi[0:Next], hi[0:Next], hj[0:Next+1], fj[0:Next+1], Dxhj[0:Next+1], Dxfj[0:Next+1], Dxxfj[0:Next+1], dx, ADr, BQr, uj[0:Next+1], betaD, alfa, tol, MaxIter, WDtol )        
-        uj[Next+1::]=0
-        qj[Next+1::]=0
+        uj[Next+1:]=0
+        qj[Next+1:]=0
         Dxuj [0:Next+1] = Deriv1j( uj[0:Next+1], dx, ADxjr  )
         Dxxuj[0:Next+1] = Deriv2j( uj[0:Next+1], dx, ADxxjr )
-     #    print 'len uj 0', len(uj[0:Next+1])
-        Dxuj[Next+1::]=0
-        Dxxuj[Next+1::]=0
+        Dxuj[Next+1:]=0
+        Dxxuj[Next+1:]=0
+
 
 
         # ------------------------------------------------------------------------------------------------
@@ -731,8 +752,6 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-
         kBrWave = BrWaveIndex( t, kTb, PHIb, PHIf, hj[0:N+1], uj[0:N+1], fj[0:N+1], MatWav, kBrWave, dx, dt, g, WDtol )
 
- 
-
         # ------------------------------------------------------------------------------------------------
         # ------------------- Breaking criterium and eddy viscosity coefficients -------------------------
         # ------------------------------------------------------------------------------------------------
@@ -750,35 +769,35 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-
         FCj[0:N+1] = FluxContinuity( hj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Nu1j[0:N+1] )
         FCi[0:N] = 1./dx*( FCj[1:N+1] - FCj[0:N] )
-        FCj[N+1::] = 0
-        FCi[N::] = 0.
+        FCj[N+1:] = 0
+        FCi[N:] = 0.
 
         # ------------------------------------------------------------------------------------------------
         # ---------------------------- Flux function for momemtum equation  ------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
         FMj[0:N+1] = FluxMomentum( qj[0:N+1], hj[0:N+1], fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Dxuj[0:N+1], Dxxhj[0:N+1], Dxxuj[0:N+1], Dxxfj[0:N+1], g, betaD, alfa, WDtol )
-        FMj[N+1::] = 0.
+        FMj[N+1:] = 0.
         FMi[0:N] = 1./dx*( FMj[1:N+1] - FMj[0:N] )
-        FMi[N::] = 0.
+        FMi[N:] = 0.
         # ------------------------------------------------------------------------------------------------
         # --------------------------- Source function for momemtum equation ------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
         # precision ici
         SMi[0:N] = SourceMomentum( hi[0:N], hj[0:N+1], fi[0:N], fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Dxfi[0:N], Dxuj[0:N+1], Nu2j[0:N+1], Xi[0:N], g, betaD, alfa, fricFact, Cfi[0:N], WDtol )
-        SMi[N::] = 0.
-        SMi = 1./dx*SMi
-        DtHi = -FCi
-        DtQi = - FMi + SMi
+        SMi[N:] = 0.
+        SMi[0:N] = 1./dx*SMi[0:N]
+        DtHi[0:N]  = -FCi[0:N] 
+        DtQi[0:N]  = - FMi[0:N]  + SMi[0:N] 
 
 
         # ------------------------------------------------------------------------------------------------
         # ------------------------------- Estimates of Hi and Qi at t=t+dt/2 -----------------------------
         # ------------------------------------------------------------------------------------------------
         #-
-        kH2 = dt*DtHi
-        kQ2 = dt*DtQi
+        kH2[0:N] = dt*DtHi[0:N]
+        kQ2[0:N] = dt*DtQi[0:N]
         Hi[0:N] = Hi0[0:N] + 1./2.*kH2[0:N]
         Qi[0:N] = Qi0[0:N] + 1./2.*kQ2[0:N]
         if FilterD1 == 1:
@@ -806,19 +825,19 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
             if Nm > N:
                 set_interp = interp1d( Xi[0:N], kH1[0:N], kind='linear', fill_value='extrapolate' )
                 toto = set_interp(Xi[N:Nm])
-                kH1 = np.concatenate([kH1[0:N],toto ])
+                kH1[0:Nm] = np.concatenate([kH1[0:N],toto ])
 
                 set_interp = interp1d( Xi[0:N], kH2[0:N], kind='linear', fill_value='extrapolate' )
                 toto = set_interp(Xi[N:Nm])
-                kH2 = np.concatenate([kH2[0:N],toto ])
+                kH2[0:Nm] = np.concatenate([kH2[0:N],toto ])
 
                 set_interp = interp1d( Xi[0:N], kQ1[0:N], kind='linear', fill_value='extrapolate' )
                 toto = set_interp(Xi[N:Nm])
-                kQ1 = np.concatenate([kQ1[0:N],toto ])
+                kQ1[0:Nm] = np.concatenate([kQ1[0:N],toto ])
 
                 set_interp = interp1d( Xi[0:N], kQ2[0:N], kind='linear', fill_value='extrapolate' )
                 toto = set_interp(Xi[N:Nm])
-                kQ2 = np.concatenate([kQ2[0:N],toto ])
+                kQ2[0:Nm] = np.concatenate([kQ2[0:N],toto ])
 
       #          set_interp = interp1d( Xj[0:N+1], etamj[0:N+1], kind='linear', fill_value='extrapolate' )
       #          toto = set_interp(Xj[N+1:Nm+1])                
@@ -862,6 +881,8 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
      
         #Water depth and velocity for incident wave
         hL0 = DataManip( t+dt/2., h0+offset,DAT )
+
+
         uL0 = (g*hL0)**0.5*(hL0+fj[0])/hL0
    
         IR = uR0 -2*(g*hR0)**0.5 - dt/2.*g*DxfR0 # Variable de Riemann associee a C-
@@ -882,32 +903,32 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         hj[0:Next+1] = CellFaceInt( dx, Hi[0:Next], ADr, hA )
         Dxhj [0:Next+1] = Deriv1j( hj[0:Next+1], dx, ADxjr  )
         Dxxhj[0:Next+1] = Deriv2j( hj[0:Next+1], dx, ADxxjr )
-        hj   [Next+1::] = 0
-        Dxhj [Next+1::] = 0
-        Dxxhj[Next+1::] = 0
+        hj   [Next+1:] = 0
+        Dxhj [Next+1:] = 0
+        Dxxhj[Next+1:] = 0
 
         hi[0:Next] = 3./2.*Hi[0:Next] - 1./4.*(hj[0:Next] + hj[1:Next+1])
-        hi[Next::] = 0.
+        hi[Next:] = 0.
 
-        if Next > len(uj)-1:
-            Nu = len(uj)-1
+        if Next > len(uj[uj != 0])-1:
+            Nu = len(uj[uj != 0])-1
             du = 1./dx*( uj[Nu]-uj[Nu-1] )
             uj[Nu+1:Next+1] = du*( Xj[Nu+1:Next+1] - Xj[Next] )
             if FilterD1 == 1:
-                uj[Nu-NIZ:Next+1] = explicitFILT0( uj[Nu-NIZ,Next+1] )
+                uj[Nu-NIZ:Next+1] = explicitFILT0( uj[Nu-NIZ:Next+1] )
         
         uj[0:Next+1], qj[0:Next+1] = DeffCorrU( uA, Qi[0:Next], hi[0:Next], hj[0:Next+1], fj[0:Next+1], Dxhj[0:Next+1], Dxfj[0:Next+1], Dxxfj[0:Next+1], dx, ADr, BQr, uj[0:Next+1], betaD, alfa, tol, MaxIter, WDtol );
         Dxuj [0:Next+1] = Deriv1j( uj[0:Next+1], dx, ADxjr  )
         Dxxuj[0:Next+1] = Deriv2j( uj[0:Next+1], dx, ADxxjr )
-        uj[Next+1::]=0
-        qj[Next+1::]=0
-        Dxuj[Next+1::]=0
-        Dxxuj[Next+1::]=0
+        uj[Next+1:]=0
+        qj[Next+1:]=0
+        Dxuj[Next+1:]=0
+        Dxxuj[Next+1:]=0
        
         hj0[:] = hj[:]
         hi0[:] = hi[:]
         uj0[:] = uj[:]
- 
+
 
         # ------------------------------------------------------------------------------------------------
         # ------------------------------------------------------------------------------------------------
@@ -919,6 +940,11 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-
         MatWav=np.array([])
         jc,jt,MatWav = WaveProp( Xj[0:N+1], hj[0:N+1],fj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], WDtol )
+        if i==1326:
+            print
+            print jc
+            print jt
+            print MatWav
 
         # ------------------------------------------------------------------------------------------------
         # ---------------------- Actualization of the breaking event index -------------------------------
@@ -938,39 +964,41 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         # -------------------------- Flux function for continuity equation  ------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
+
         FCj[0:N+1] = FluxContinuity( hj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Nu1j[0:N+1] )
-        FCj[N+1::] = 0.
+        FCj[N+1:] = 0.
         FCi[0:N] = 1./dx*( FCj[1:N+1] - FCj[0:N] )
-        FCi[N::] = 0.
+        FCi[N:] = 0.
 
         # ------------------------------------------------------------------------------------------------
         # ---------------------------- Flux function for momemtum equation  ------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
         FMj[0:N+1]=FluxMomentum(qj[0:N+1], hj[0:N+1],fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1],Dxuj[0:N+1], Dxxhj[0:N+1], Dxxuj[0:N+1], Dxxfj[0:N+1], g, betaD, alfa, WDtol )
-        FMj[N+1::] = 0.
+        FMj[N+1:] = 0.
         FMi[0:N] = 1./dx*( FMj[1:N+1] - FMj[0:N] )
-        FMi[N::] = 0.
+        FMi[N:] = 0.
 
         # ------------------------------------------------------------------------------------------------
         # --------------------------- Source function for momemtum equation ------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
         SMi[0:N]=SourceMomentum( hi[0:N], hj[0:N+1], fi[0:N], fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Dxfi[0:N], Dxuj[0:N+1], Nu2j[0:N+1], Xi[0:N], g, betaD, alfa, fricFact, Cfi[0:N], WDtol )
-        SMi[N::] = 0.
-        SMi = 1./dx*SMi
+        SMi[N:] = 0.
+        SMi[0:N] = 1./dx*SMi[0:N]
     
-        DtHi = - FCi
-        DtQi = -FMi + SMi
+        DtHi[0:N]  = - FCi[0:N] 
+        DtQi[0:N]  = -FMi[0:N]  + SMi[0:N] 
 
         # ------------------------------------------------------------------------------------------------
         # --------------------------------- Estimates of Hi and Qi at t=t+dt -----------------------------
         # ------------------------------------------------------------------------------------------------
         #-
-        kH3 = dt*DtHi
-        kQ3 = dt*DtQi
+        kH3[0:N] = dt*DtHi[0:N]
+        kQ3[0:N] = dt*DtQi[0:N]
         Hi[0:N] = Hi0[0:N] + kH3[0:N]
         Qi[0:N] = Qi0[0:N] + kQ3[0:N]
+
         if FilterD1 == 1:
             Hi[N-NIZ:N] = explicitFILT0( Hi[N-NIZ:N] )
             Qi[N-NIZ:N] = explicitFILT0( Qi[N-NIZ:N] )
@@ -982,6 +1010,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         dq = 1./dx*(Qi[N-1] - Qi[N-2])
         Hi[N:Ntot] = Hi[N-1] + dh*(Xi[N:Ntot] - Xi[N-1])
         Qi[N:Ntot] = Qi[N-1] + dq*(Xi[N:Ntot] - Xi[N-1])
+        
        
 
         # ------------------------------------------------------------------------------------------------
@@ -1026,27 +1055,23 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
 
         # Cell face values reconstruction for water depth h
         hj[0:Next+1] = CellFaceInt( dx, Hi[0:Next], ADr, hA )
-     #   print 'len hj third RK', len(hj[0:Next+1])
         Dxhj [0:Next+1] = Deriv1j( hj[0:Next+1], dx, ADxjr  )
         Dxxhj[0:Next+1] = Deriv2j( hj[0:Next+1], dx, ADxxjr )
-        hj   [Next+1::] = 0.
-        Dxhj [Next+1::] = 0.
-        Dxxhj[Next+1::] = 0.
+        hj   [Next+1:] = 0.
+        Dxhj [Next+1:] = 0.
+        Dxxhj[Next+1:] = 0.
 
         hi[0:Next] = 3./2.*Hi[0:Next] - 1./4.*(hj[0:Next] + hj[1:Next+1])
-        hi[Next::] = 0.
+        hi[Next:] = 0.
 
 
         uj[0:Next+1], qj[0:Next+1] = DeffCorrU(uA, Qi[0:Next], hi[0:Next], hj[0:Next+1], fj[0:Next+1], Dxhj[0:Next+1], Dxfj[0:Next+1], Dxxfj[0:Next+1], dx, ADr, BQr, uj[0:Next+1], betaD, alfa, tol, MaxIter, WDtol);
         Dxuj[0:Next+1] = Deriv1j( uj[0:Next+1], dx, ADxjr  )
         Dxxuj[0:Next+1]= Deriv2j( uj[0:Next+1], dx, ADxxjr )
-        uj  [Next+1::] = 0
-        qj  [Next+1::] = 0
-        Dxuj[Next+1::] = 0
-        Dxxuj[Next+1::] = 0
-
-
-
+        uj  [Next+1:] = 0
+        qj  [Next+1:] = 0
+        Dxuj[Next+1:] = 0
+        Dxxuj[Next+1:] = 0
 
         # ------------------------------------------------------------------------------------------------
         # ----------------------------- Fourth Runge-Kutta stage -----------------------------------------
@@ -1078,8 +1103,8 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-
         FCj[0:N+1] = FluxContinuity( hj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Nu1j[0:N+1] )
         FCi[0:N] = 1./dx*( FCj[1:N+1] - FCj[0:N] )
-        FCj[N+1::]=0 
-        FCj[N::]=0 
+        FCj[N+1:]=0 
+        FCj[N:]=0 
 
         # ------------------------------------------------------------------------------------------------
         # ---------------------------- Flux function for momemtum equation  ------------------------------
@@ -1087,24 +1112,24 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         #-
         FMj[0:N+1] = FluxMomentum( qj[0:N+1], hj[0:N+1], fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Dxuj[0:N+1], Dxxhj[0:N+1], Dxxuj[0:N+1], Dxxfj[0:N+1], g, betaD, alfa, WDtol )
         FMi[0:N] = 1./dx*( FMj[1:N+1] - FMj[0:N] )
-        FMj[N+1::]=0 
-        FMj[N::]=0 
+        FMj[N+1:]=0 
+        FMj[N:]=0 
         # ------------------------------------------------------------------------------------------------
         # --------------------------- Source function for momemtum equation ------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
         SMi[0:N] = SourceMomentum( hi[0:N], hj[0:N+1], fi[0:N], fj[0:N+1], uj[0:N+1], Dxhj[0:N+1], Dxfj[0:N+1], Dxfi[0:N], Dxuj[0:N+1], Nu2j[0:N+1], Xi[0:N], g, betaD, alfa, fricFact, Cfi[0:N], WDtol )
-        SMi[N::]=0 
-        SMi = 1./dx*SMi
-        DtHi = -FCi
-        DtQi = -FMi + SMi
+        SMi[N:]=0 
+        SMi[0:N] = 1./dx*SMi[0:N]
+        DtHi[0:N]  = -FCi[0:N] 
+        DtQi[0:N]  = -FMi[0:N]  + SMi[0:N] 
 
         # ------------------------------------------------------------------------------------------------
         # ------------------------------- Estimates of Hi and Qi at t=t+dt -------------------------------
         # ------------------------------------------------------------------------------------------------
         #-
-        kH4 = dt*DtHi
-        kQ4 = dt*DtQi
+        kH4[0:N] = dt*DtHi[0:N]
+        kQ4[0:N] = dt*DtQi[0:N]
         Hi[0:N] = Hi0[0:N] + 1./2.*kH4[0:N]
         Qi[0:N] = Qi0[0:N] + 1./2.*kQ4[0:N]
         Hi[0:N]=Hi0[0:N]+(kH1[0:N]+2*kH2[0:N]+2*kH3[0:N]+kH4[0:N])/6.
@@ -1165,11 +1190,7 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
             ADxxjr = Comp_2nd_Mat( Next+1 )
             ADr = Comp_1st_Mat( Next-1 )
             BQr = Cell_J_Mat( Next+1 )        
-  #      if i== 482:
-  #          print Nm
-  #          print Next
-  #          return
-
+        
         # ------------------------------------------------------------------------------------------------
         # ------------------------ Cell faces values hj, qj and uj at t=t+dt -----------------------------
         # ------------------------------------------------------------------------------------------------
@@ -1213,43 +1234,39 @@ def FVRK4GPP_sensiZ(Ti=None, Tf=None, Cr=None, STO=None, carpetaN=None, carpetaO
         # Cell face values reconstruction for water depth h
         #-
         hj[0:Next+1] = CellFaceInt( dx, Hi[0:Next], ADr, hA )
-        hj[Next+1::]=0
+        hj[Next+1:]=0
         Dxhj [0:Next+1] = Deriv1j( hj[0:Next+1], dx, ADxjr  )
         Dxxhj[0:Next+1] = Deriv2j( hj[0:Next+1], dx, ADxxjr )
-        Dxhj[Next+1::]=0
-        Dxhj[Next+1::]=0
+        Dxhj[Next+1:]=0
+        Dxxhj[Next+1:]=0
 
         hi[0:Next] = 3./2.*Hi[0:Next] - 1./4.*(hj[0:Next] + hj[1:Next+1])
-        hi[Next::]=0
+        hi[Next:]=0
 
-   #     print 'Next =', Next
-   #     print 'len hj',  len(hj[0:Next+1] ), len(hj), aa
-   #     print 'len uj 1',  len(uj[0:Next+1] ), len(uj), bb
-        if Next > len(uj)-1:
-            Nu = len(uj)-1
+        if Next > len(uj[uj !=0])-1:
+            Nu = len(uj[uj !=0])-1
             du = 1./dx*( uj[Nu]-uj[Nu-1] )
             uj[Nu+1:Next+1] = du*( Xj[Nu+1:Next+1] - Xj[Next] )
             if FilterD1 == 1:
                 uj[Nu-NIZ:Next+1] = explicitFILT0( uj[Nu -NIZ:Next+1] )
 
-   #     print 'len uj 2',  len(uj[0:Next+1] )
-
         uj[0:Next+1], qj[0:Next+1] = DeffCorrU(uA, Qi[0:Next], hi[0:Next], hj[0:Next+1], fj[0:Next+1], Dxhj[0:Next+1], Dxfj[0:Next+1], Dxxfj[0:Next+1], dx, ADr, BQr, uj[0:Next+1], betaD, alfa, tol, MaxIter, WDtol)
         Dxuj [0:Next+1] = Deriv1j( uj[0:Next+1], dx, ADxjr  )
         Dxxuj[0:Next+1] = Deriv2j( uj[0:Next+1], dx, ADxxjr )
-#        print uj[0:30]
-        uj[Next+1::]=0
-        qj[Next+1::]=0
-        Dxuj[Next+1::]=0
-        Dxuj[Next+1::]=0
+        uj[Next+1:]=0
+        qj[Next+1:]=0
+        Dxuj[Next+1:]=0
+        Dxuj[Next+1:]=0
 
         hj0[:] = hj[:]
         hi0[:] = hi[:]
-        uj0[:] = uj[:] 
+        uj0[:] = uj[:]
+
         t = t+dt
         if ( np.max(np.abs(Hi)) > 1000.0 or N < NSZ ):
             llwr=1
             break
+
  
        
  #   VOLT = np.sum(VolIn) / WaterVol[0]

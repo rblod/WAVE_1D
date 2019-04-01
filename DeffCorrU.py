@@ -8,6 +8,7 @@ from scipy.sparse.linalg import spsolve
 
     
 #@jit
+#@profile
 def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj=None,dx=None,Aq=None,Bq=None,uj_old=None,bD=None,alfa=None,tol=None,MaxIter=None,WDtol=None):
 
     # Arguments :
@@ -37,7 +38,7 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
 #  WDtol : 
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
-    N=len(hj)
+    N=hj.size
     rj=np.zeros(N)
     aj=np.zeros(N)
     bj=np.zeros(N)
@@ -54,6 +55,7 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
 # Right boudary extrapolated values of hi (linear extrapolation)
 
     hiN=np.matmul(np.array([-1./2.,3./2.]),hj[N-2:N])
+
     if bD == 1:
         rj = multiply((Dxhj + Dxfj),Dxfj) + multiply(1./2.*hj,Dxxfj)
 
@@ -137,20 +139,20 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
     row = np.arange(0,1)
     col = np.arange(0,1)
     data = np.zeros(1)
-    data[:]= 1
+    data[:]= 1.
     b1=sps.csr_matrix((data, (row, col)), shape=(N-2,1))
 
     row = np.arange(N-3,N-2)
     col =  np.arange(0,1)
     data = np.zeros(1)
-    data[:]= 1
+    data[:]= 1.
     b2=sps.csr_matrix((data, (row, col)), shape=(N-2,1))
 
     row = np.arange(0,1)
     col = np.arange(0,1)
     data = np.zeros(1 )
 #  #   data = 1/26*([5, -4, 1])
-    data[0] = 1/26.*5
+    data[0] = 1./26.*5
     p1=sps.csr_matrix((data, (row, col)), shape=(1,N-2))
     p1[0,1]= 1./26.* -4
     p1[0,2]= 1./26.
@@ -158,13 +160,13 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
     row = np.arange(0,1)
     col = np.arange(N-4,N-3)
     data = np.zeros(1 )
-    data[0] = -1
+    data[0] = -1.
     p2=sps.csr_matrix((data, (row, col)), shape=(1,N-2))
-    p2[0,N-3]=2 
+    p2[0,N-3]=2. 
 
     bq = 3./4.*( Qi[0:N-2] + Qi[1:N-1])
-    m1 = (1+rj[1])/24.   -1/dx**2*bj[1]
-    m2 = (1+rj[N-2])/24. -1/dx**2*aj[N-2]
+    m1 = (1+rj[1])/24.   -1./dx**2*bj[1]
+    m2 = (1+rj[N-2])/24. -1./dx**2*aj[N-2]
 
 #     # ----------------------------------------------------------------------------------------------------
     Aq[0,0:2] = np.array([1., 1/4.])
@@ -198,8 +200,7 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
     qj[1:N-1]=(P1-P2*qja)
     qj[0] = 1./26.*np.matmul( np.array([5, -4, 1]),qj[1:4] ) + qja
     qj[N-1]=np.matmul(([-1, 2]),qj[N-3:N-1] )    # Linear extrapolation
-     
-
+      
  
 # # Picard iterations
     i=0
@@ -211,7 +212,7 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
 
     # New uj vector
         uj_n[0]=uj1
-        uj_n[1:N-1]=spsolve(AU ,  BQ*qj[1:N-1] +Fj[1:N-1]+b1*(1./24.*qja-m1*uj1) )
+        uj_n[1:N-1]=spsolve(AU ,  BQ*qj[1:N-1] +  Fj[1:N-1]+  b1*(1./24.*qja-m1*uj1)    )
         uj_n[N-1]=np.matmul([-1 ,2] ,uj_n[N-3:N-1] ) # Linear extrapolation
     
      
@@ -234,15 +235,14 @@ def DeffCorrU(uj1=None,Qi=None,hi=None,hj=None,fj=None,Dxhj=None,Dxfj=None,Dxxfj
     
     # Relative error
         err=(np.sum(np.abs(uj_n-uj))/np.sum(np.abs(uj_n)))
+
     # Actualization
         uj=beta1*uj_n+(1-beta1)*uj
         qj[0]=beta2*qj_n[0]+(1-beta2)*qj[0]
         qj[1:N]=qj_n[1:N]
         i=i+1
  
-    if i >= MaxIter:
-        print('WARNING : Maximum number of iterations reached')
-    
-   # uj=uj
-   # qj=qj
+  #  if i >= MaxIter:
+  #      print('WARNING : Maximum number of iterations reached')
+
     return uj, qj

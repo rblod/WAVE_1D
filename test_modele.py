@@ -5,7 +5,7 @@ import numpy as np
 ##
 do_plot=True
 
-niter = 20
+niter = 5
 RootFolder = getcwd()
 tfin  = 360
 

@@ -16,13 +16,14 @@ import __builtin__
     
     
 #@njit
+#@profile
 def modele( RootFolder = None, tfin     = None, miter       = None, 
             rd_bathy   = None, rd_wave  = None, rd_wave_tot = None, 
             nstart     = None, nfps     = None, newdx       = None, 
             withnoise  = None, noisemin = None, noisemax    = None  ):
 
     read_bathy = False
-    save_bathy = False
+    save_bathy = True
         
     # Generation Bathy Random
     success = False
@@ -74,9 +75,9 @@ def modele( RootFolder = None, tfin     = None, miter       = None,
     
     # Save outputs
     if withnoise:
-        np.savez( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack, Bath, TimeStack,TimeStackNoise ) 
+        np.savez( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack=XStack, Bath=Bath, TimeStack=TimeStack,TimeStackNoise=TimeStackNoise ) 
     else:
-        np.savez( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack, Bath, TimeStack )  
+        np.savez( RootFolder+'/results/calc0'+str(miter)+'/timestack', XStack=XStack, Bath=Bath, TimeStack=TimeStack)  
 
     return TimeStack, Zprof, nn
     
@@ -115,8 +116,8 @@ def movieRESminInterne(ti=None,tf=None,nfps=None,dum=None,carpeta=None,RootFolde
     Hjmat = np.loadtxt(carpeta+'/Hj.dat')
     NUjmat= np.loadtxt(carpeta+'/NUj.dat')
 
-    mycmd='rm -f '+carpeta+'/*.dat '
-    os.system(mycmd)
+  #  mycmd='rm -f '+carpeta+'/*.dat '
+  #  os.system(mycmd)
 
     Ntot  = NUjmat.shape[1]
     N0 = Nwet[0]
@@ -207,7 +208,8 @@ def movieRESminInterne(ti=None,tf=None,nfps=None,dum=None,carpeta=None,RootFolde
         set_interp = interp1d( XStack[0:N], Bath, kind='linear', fill_value='extrapolate')
         Bath_new[idt,:] = set_interp(x)
 #
-    return x, TimeStack_new, Bath_new
+#    return x, TimeStack_new, Bath_new
+    return XStack, TimeStack,Bath
 
 
 def genebathy_2():
@@ -257,7 +259,7 @@ def genebathy_2():
     z = -X1*sl 
     z[50::] = z1
     z[:] = z[::-1]
-    z=z-0.2
+    z = z-0.2
 
     return z, mysucc
     

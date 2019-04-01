@@ -1,7 +1,8 @@
-from numpy import multiply
+import numpy as np
 from numba import njit
     
 #@njit
+#@profile
 def FluxContinuity(hj=None,uj=None,Dxhj=None,Dxfj=None,Nuj=None):
 
     # ----------------------------------------------------------------------------------------------------
@@ -18,5 +19,6 @@ def FluxContinuity(hj=None,uj=None,Dxhj=None,Dxfj=None,Nuj=None):
 # ----------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------
     N=len(hj)
-    FCj=multiply(hj,uj) - multiply(Nuj,Dxhj)
+    FCj = np.zeros(N)
+    FCj = hj*uj - Nuj*Dxhj
     return FCj
